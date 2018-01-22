@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CountDownView">
+        <!--内容文字-->
+        <attr name="android:text" />
+        <!--字体大小-->
+        <attr name="android:textSize" />
+        <!--字体颜色-->
+        <attr name="android:textColor" />
+        <!--背景颜色-->
+        <attr name="backgroundColor" format="color" />
+        <!--描边宽度-->
+        <attr name="strokeWidth" format="dimension" />
+        <!--描边颜色-->
+        <attr name="strokeColor" format="color" />
+        <!--显示时长-->
+        <attr name="duration" format="integer" />
+    </declare-styleable>
+</resources>
