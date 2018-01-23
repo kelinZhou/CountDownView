@@ -9,11 +9,26 @@
         <attr name="android:textColor" />
         <!--背景颜色-->
         <attr name="backgroundColor" format="color" />
-        <!--描边宽度-->
-        <attr name="strokeWidth" format="dimension" />
-        <!--描边颜色-->
-        <attr name="strokeColor" format="color" />
+        <!--当前进度-->
+        <attr name="progress" format="float" />
+        <!--进度条宽度-->
+        <attr name="progressWidth" format="dimension" />
+        <!--进度条颜色-->
+        <attr name="progressColor" format="color" />
         <!--显示时长-->
         <attr name="duration" format="integer" />
+        <!--行字体长度，用作分割文本的依据。-->
+        <attr name="lineTextLength" format="integer" />
+        <!--进度条模式-->
+        <attr name="progressMode">
+            <!--顺时针从无到有-->
+            <enum name="clockwiseFromNothing" value="0x0001" />
+            <!--顺时针从有到无-->
+            <enum name="clockwiseFromExist" value="0x0002" />
+            <!--逆时针从无到有-->
+            <enum name="anticlockwiseFromNothing" value="0x0004" />
+            <!--逆时针从有到无-->
+            <enum name="anticlockwiseFromExist" value="0x0008" />
+        </attr>
     </declare-styleable>
 </resources>

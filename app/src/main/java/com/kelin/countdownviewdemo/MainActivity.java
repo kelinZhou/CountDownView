@@ -12,7 +12,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         CountDownView cdView = findViewById(R.id.cd_view);
-        cdView.setDuration(5000);
+        cdView.setDuration(90000);
         cdView.start();
     }
 }

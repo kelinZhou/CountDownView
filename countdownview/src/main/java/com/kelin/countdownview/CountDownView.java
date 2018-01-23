@@ -7,7 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.CountDownTimer;
-import android.support.annotation.Size;
+import android.support.annotation.IntRange;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -22,26 +22,28 @@ import android.view.View;
  */
 
 public class CountDownView extends View {
-    private static final String DEFAULT_TEXT = "跳过";
-    private static final float DEFAULT_TEXT_SIZE = 0x0000_000E;
-    private static final int DEFAULT_TEXT_COLOR = 0xFFFFFFFF;
-    private static final float DEFAULT_STROKE_WIDTH = 0x0000_000F;
-    private static final int DEFAULT_STROKE_COLOR = 0xFF66BEE0;
-    private static final int DEFAULT_BACKGROUND_COLOR = 0xFF666666;
-    private static final int DEFAULT_DURATION = 0x0000_1388;
-    /**
-     * 表示进度模式为从无到有。
-     */
-    private static final int MODE_FROM_NOTHING = 0x0000_00F1;
-    /**
-     * 表示进度模式为从有到无。
-     */
-    private static final int MODE_FROM_EXIST = 0x0000_00F2;
 
+    private static final String DEFAULT_TEXT = "跳过";
+    /**
+     * 表示进度模式为顺时针从无到有。
+     */
+    private static final int CLOCKWISE_FROM_NOTHING = 0x0000_0001;
+    /**
+     * 表示进度模式为顺时针从有到无。
+     */
+    private static final int CLOCKWISE_FROM_EXIST = CLOCKWISE_FROM_NOTHING << 1;
+    /**
+     * 表示进度模式为逆时针从无到有。
+     */
+    private static final int ANTICLOCKWISE_FROM_NOTHING = CLOCKWISE_FROM_EXIST << 1;
+    /**
+     * 表示进度模式为逆时针从有到无。
+     */
+    private static final int ANTICLOCKWISE_FROM_EXIST = ANTICLOCKWISE_FROM_NOTHING << 1;
     /**
      * 背景颜色。
      */
-    private int mBackgroundColor = DEFAULT_BACKGROUND_COLOR;
+    private int mBackgroundColor = 0xFF666666;
     /**
      * 倒计时的监听。
      */
@@ -53,11 +55,11 @@ public class CountDownView extends View {
     /**
      * 边框的宽度。
      */
-    private float mStrokeWidth = DEFAULT_STROKE_WIDTH;
+    private int mProgressWidth = 0x0000_000F;
     /**
      * 边框的颜色。
      */
-    private int mStrokeColor = DEFAULT_STROKE_COLOR;
+    private int mProgressColor = 0xFF66BEE0;
     /**
      * 要显示的文字。
      */
@@ -69,28 +71,43 @@ public class CountDownView extends View {
     /**
      * 字体颜色。
      */
-    private int mTextColor = DEFAULT_TEXT_COLOR;
+    private int mTextColor = 0xFFFFFFFF;
+    /**
+     * 每行文字的长度，用作换号的依据。
+     */
+    private int mLineTextLength = 2;
     /**
      * 显示时长。
      */
-    private long duration = DEFAULT_DURATION;
+    private int duration = 3000;
+    /**
+     * 用来画圆的画笔。
+     */
     private Paint mCirclePaint;
-    private Paint mStrokePaint;
-    private StaticLayout staticLayout;
+    /**
+     * 用来画进度条的画笔。
+     */
+    private Paint mProgressPaint;
+    /**
+     * 绘制进度条时需要用到的矩形，为了避免在onDraw的时候重复new，所以在这里直接创建了。
+     */
+    private final RectF mRect = new RectF();
+    /**
+     * 用来绘制文字的工具。
+     */
+    private StaticLayout mStaticLayout;
+    /**
+     * 倒计时工具。
+     */
     private CountDownTimer mCountDownTimer;
-    /**
-     * 用来记录当前的宽度。
-     */
-    private int mContentWidth;
-    /**
-     * 用来记录当前的高度。
-     */
-    private int mContentHeight;
     /**
      * 用来记录当前的进度条模式。
      */
-    private int progressMode = MODE_FROM_EXIST;
-    RectF mRect = new RectF();
+    private int progressMode = CLOCKWISE_FROM_EXIST;
+    /**
+     * 当前圆的半径。
+     */
+    private int mRadios;
 
     public CountDownView(Context context) {
         this(context, null);
@@ -99,18 +116,21 @@ public class CountDownView extends View {
     public CountDownView(Context context, AttributeSet attrs) {
         super(context, attrs);
         final float fontScale = getContext().getResources().getDisplayMetrics().scaledDensity;
-        mTextSize = (int) (DEFAULT_TEXT_SIZE * fontScale + 0.5f);
+        mTextSize = (int) (0x0000_000E * fontScale + 0.5);
         if (attrs != null) {
             TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.CountDownView);
-            mBackgroundColor = ta.getColor(R.styleable.CountDownView_backgroundColor, DEFAULT_BACKGROUND_COLOR);
-            mStrokeWidth = ta.getDimension(R.styleable.CountDownView_strokeWidth, DEFAULT_STROKE_WIDTH);
-            mStrokeColor = ta.getColor(R.styleable.CountDownView_strokeColor, DEFAULT_STROKE_COLOR);
+            mBackgroundColor = ta.getColor(R.styleable.CountDownView_backgroundColor, mBackgroundColor);
+            mProgressWidth = (int) (ta.getDimension(R.styleable.CountDownView_progressWidth, mProgressWidth) + 0.9);
+            mProgressColor = ta.getColor(R.styleable.CountDownView_progressColor, mProgressColor);
             mTextSize = ta.getDimension(R.styleable.CountDownView_android_textSize, mTextSize);
-            mTextColor = ta.getColor(R.styleable.CountDownView_android_textColor, DEFAULT_TEXT_COLOR);
+            mTextColor = ta.getColor(R.styleable.CountDownView_android_textColor, mTextColor);
+            mLineTextLength = ta.getInteger(R.styleable.CountDownView_lineTextLength, mLineTextLength);
+            mProgress = 360 * ta.getFloat(R.styleable.CountDownView_progress, 0);
+            progressMode = ta.getInt(R.styleable.CountDownView_progressMode, progressMode);
             if ((mContentText = ta.getString(R.styleable.CountDownView_android_text)) == null) {
                 mContentText = DEFAULT_TEXT;
             }
-            duration = ta.getInteger(R.styleable.CountDownView_duration, DEFAULT_DURATION);
+            setDuration(ta.getInteger(R.styleable.CountDownView_duration, duration));
             ta.recycle();
         }
 
@@ -127,22 +147,29 @@ public class CountDownView extends View {
         mTextPaint.setTextSize(mTextSize);
         mTextPaint.setTextAlign(Paint.Align.CENTER);
 
-        mStrokePaint = new Paint();
-        mStrokePaint.setAntiAlias(true);
-        mStrokePaint.setDither(true);
-        mStrokePaint.setColor(mStrokeColor);
-        mStrokePaint.setStrokeWidth(mStrokeWidth);
-        mStrokePaint.setStyle(Paint.Style.STROKE);
+        mProgressPaint = new Paint();
+        mProgressPaint.setAntiAlias(true);
+        mProgressPaint.setDither(true);
+        mProgressPaint.setColor(mProgressColor);
+        mProgressPaint.setStrokeWidth(mProgressWidth);
+        mProgressPaint.setStyle(Paint.Style.STROKE);
 
-        staticLayout = new StaticLayout(mContentText, mTextPaint, (int) mTextPaint.measureText(mContentText), Layout.Alignment.ALIGN_NORMAL, 1F, 0, false);
+        mStaticLayout = new StaticLayout(mContentText, mTextPaint, (int) mTextPaint.measureText(mContentText.substring(0, mLineTextLength)), Layout.Alignment.ALIGN_NORMAL, 1F, 0, false);
     }
 
     /**
      * 设置时长，单位为毫秒。
      *
-     * @param duration 要设置的时长。
+     * @param duration 要设置的时长，取值范围：1000 ~ 20000(1秒至20秒)。
      */
-    public void setDuration(@Size(min = 1000, max = 20000) long duration) {
+    public void setDuration(@IntRange(from = 1000, to = 20000) int duration) {
+        if (duration < 1000) {
+            // 这里做小于1秒的判断是因为如果小于1秒假如是200毫秒的话就会导致➗360的时候得不到整数，
+            //而且如果小于一秒也没有倒计时的必要了，我是这么认为的。所以加了这个判断。
+            //至于没有判断大于20秒，是考虑到有可能你真的需要显示20秒，虽然我建议不要超过20秒，但还是不要抛出异常的好，
+            //我加了 @IntRange 注解只是想在超这个范围的时候在代码中有个警告。
+            throw new IllegalArgumentException("the duration must be ≥ 1000 and must be ≤ 20000!");
+        }
         this.duration = duration;
     }
 
@@ -151,48 +178,38 @@ public class CountDownView extends View {
         int widthMode = MeasureSpec.getMode(widthMeasureSpec);
         int heightMode = MeasureSpec.getMode(heightMeasureSpec);
 
-        int w;
+        int w = mStaticLayout.getWidth() + getPaddingLeft() + getPaddingRight() + mProgressWidth;
+        int h = mStaticLayout.getHeight() + getPaddingTop() + getPaddingBottom() + mProgressWidth;
+        mRadios = (int) ((Math.sqrt(Math.pow(w, 2) + Math.pow(h, 2)) + 0.5f) / 2);
+        int width;
         if (widthMode != MeasureSpec.EXACTLY) {
-            w = staticLayout.getWidth();
+            width = (mRadios << 1) + mProgressWidth;
         } else {
-            w = MeasureSpec.getSize(widthMeasureSpec);
+            width = MeasureSpec.getSize(widthMeasureSpec);
         }
-        w += (getPaddingLeft() + getPaddingRight());
-        int h;
+        int height;
         if (heightMode != MeasureSpec.EXACTLY) {
-            h = staticLayout.getHeight();
+            height = (mRadios << 1) + mProgressWidth;
         } else {
-            h = MeasureSpec.getSize(heightMeasureSpec);
+            height = MeasureSpec.getSize(heightMeasureSpec);
         }
-        h += (getPaddingTop() + getPaddingBottom());
-        mContentHeight = mContentWidth = Math.max(w, h);
-        setMeasuredDimension(mContentWidth, mContentHeight);
+        setMeasuredDimension(width, height);
     }
 
     @Override
     @SuppressLint("DrawAllocation")
     protected void onDraw(Canvas canvas) {
-        int min = Math.min(mContentWidth, mContentHeight);
+        int cx = getMeasuredWidth() >>> 1;
+        int cy = getMeasuredHeight() >>> 1;
+        canvas.drawCircle(cx, cy, mRadios, mCirclePaint);
 
-        int w = mContentWidth >>> 1;
-        int m = min >>> 1;
-        int h = mContentHeight >>> 1;
-        canvas.drawCircle(w, h, m, mCirclePaint);
-
-        if (mContentWidth > mContentHeight) {
-            mRect.left = w - m + mStrokeWidth / 2;
-            mRect.top = mStrokeWidth / 2;
-            mRect.right = w + m - mStrokeWidth / 2;
-            mRect.bottom = mContentHeight - mStrokeWidth / 2;
-        } else {
-            mRect.left = mStrokeWidth / 2;
-            mRect.top = h - m + mStrokeWidth / 2;
-            mRect.right = mContentWidth - mStrokeWidth / 2;
-            mRect.bottom = h - mStrokeWidth / 2 + m;
-        }
-        canvas.drawArc(mRect, -90, mProgress, false, mStrokePaint);
-        canvas.translate(w, h - staticLayout.getHeight() / 2);
-        staticLayout.draw(canvas);
+        mRect.left = cx - mRadios;
+        mRect.top = cy - mRadios;
+        mRect.right = cx + mRadios;
+        mRect.bottom = cy + mRadios;
+        canvas.drawArc(mRect, -90, mProgress, false, mProgressPaint);
+        canvas.translate(cx, cy - (mStaticLayout.getHeight() >>> 1));
+        mStaticLayout.draw(canvas);
     }
 
     public void start() {
@@ -201,6 +218,12 @@ public class CountDownView extends View {
         }
         mCountDownTimer = new CD(duration, duration / 360);
         mCountDownTimer.start();
+    }
+
+    @Override
+    public boolean performClick() {
+        mCountDownTimer.onFinish();
+        return super.performClick();
     }
 
     public void setOnFinishListener(OnFinishListener listener) {
@@ -229,7 +252,7 @@ public class CountDownView extends View {
 
         @Override
         public void onTick(long millisUntilFinished) {
-            mProgress = progressMode == MODE_FROM_NOTHING ?
+            mProgress = progressMode == CLOCKWISE_FROM_NOTHING ?
                     360 - millisUntilFinished / mCountDownInterval
                     : ~(millisUntilFinished / mCountDownInterval);
             invalidate();
@@ -237,7 +260,7 @@ public class CountDownView extends View {
 
         @Override
         public void onFinish() {
-            mProgress = progressMode == MODE_FROM_NOTHING ? 360 : 0;
+            mProgress = progressMode == CLOCKWISE_FROM_NOTHING ? 360 : 0;
             invalidate();
             if (mOnFinishListener != null) {
                 mOnFinishListener.onFinish();
