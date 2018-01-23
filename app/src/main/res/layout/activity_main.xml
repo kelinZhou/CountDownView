@@ -27,7 +27,7 @@
         android:layout_marginRight="10dp"
         android:layout_marginTop="10dp"
         app:progressMode="clockwiseFromExist"
-        app:progress="0.5"
+        app:progress="0.3"
         app:progressColor="#f0f4"
         android:text="跳广过告"
         app:progressWidth="2dp"/>

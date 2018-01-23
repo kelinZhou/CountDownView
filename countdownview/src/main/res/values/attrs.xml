@@ -22,13 +22,13 @@
         <!--进度条模式-->
         <attr name="progressMode">
             <!--顺时针从无到有-->
-            <enum name="clockwiseFromNothing" value="0x0001" />
+            <enum name="clockwiseFromNothing" value="0x02" />
             <!--顺时针从有到无-->
-            <enum name="clockwiseFromExist" value="0x0002" />
+            <enum name="clockwiseFromExist" value="0x03" />
             <!--逆时针从无到有-->
-            <enum name="anticlockwiseFromNothing" value="0x0004" />
+            <enum name="anticlockwiseFromNothing" value="0x00" />
             <!--逆时针从有到无-->
-            <enum name="anticlockwiseFromExist" value="0x0008" />
+            <enum name="anticlockwiseFromExist" value="0x01" />
         </attr>
     </declare-styleable>
 </resources>

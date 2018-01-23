@@ -24,22 +24,23 @@ import android.view.View;
 public class CountDownView extends View {
 
     private static final String DEFAULT_TEXT = "跳过";
+    private final int DEFAULT_PADDING;
     /**
      * 表示进度模式为顺时针从无到有。
      */
-    private static final int CLOCKWISE_FROM_NOTHING = 0x0000_0001;
+    private static final int CLOCKWISE_FROM_NOTHING = 0b0000_0010;
     /**
      * 表示进度模式为顺时针从有到无。
      */
-    private static final int CLOCKWISE_FROM_EXIST = CLOCKWISE_FROM_NOTHING << 1;
+    private static final int CLOCKWISE_FROM_EXIST = 0b0000_0011;
     /**
      * 表示进度模式为逆时针从无到有。
      */
-    private static final int ANTICLOCKWISE_FROM_NOTHING = CLOCKWISE_FROM_EXIST << 1;
+    private static final int ANTICLOCKWISE_FROM_NOTHING = 0b0000_0000;
     /**
      * 表示进度模式为逆时针从有到无。
      */
-    private static final int ANTICLOCKWISE_FROM_EXIST = ANTICLOCKWISE_FROM_NOTHING << 1;
+    private static final int ANTICLOCKWISE_FROM_EXIST = 0b0000_0001;
     /**
      * 背景颜色。
      */
@@ -103,7 +104,7 @@ public class CountDownView extends View {
     /**
      * 用来记录当前的进度条模式。
      */
-    private int progressMode = CLOCKWISE_FROM_EXIST;
+    private int mProgressMode = CLOCKWISE_FROM_EXIST;
     /**
      * 当前圆的半径。
      */
@@ -115,6 +116,7 @@ public class CountDownView extends View {
 
     public CountDownView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        setClickable(true);
         final float fontScale = getContext().getResources().getDisplayMetrics().scaledDensity;
         mTextSize = (int) (0x0000_000E * fontScale + 0.5);
         if (attrs != null) {
@@ -126,14 +128,14 @@ public class CountDownView extends View {
             mTextColor = ta.getColor(R.styleable.CountDownView_android_textColor, mTextColor);
             mLineTextLength = ta.getInteger(R.styleable.CountDownView_lineTextLength, mLineTextLength);
             mProgress = 360 * ta.getFloat(R.styleable.CountDownView_progress, 0);
-            progressMode = ta.getInt(R.styleable.CountDownView_progressMode, progressMode);
+            mProgressMode = ta.getInt(R.styleable.CountDownView_progressMode, mProgressMode);
             if ((mContentText = ta.getString(R.styleable.CountDownView_android_text)) == null) {
                 mContentText = DEFAULT_TEXT;
             }
             setDuration(ta.getInteger(R.styleable.CountDownView_duration, duration));
             ta.recycle();
         }
-
+        DEFAULT_PADDING = (int) (3 * context.getResources().getDisplayMetrics().density + 0.5f);
         mCirclePaint = new Paint();
         mCirclePaint.setAntiAlias(true);
         mCirclePaint.setDither(true);
@@ -177,9 +179,8 @@ public class CountDownView extends View {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int widthMode = MeasureSpec.getMode(widthMeasureSpec);
         int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-
-        int w = mStaticLayout.getWidth() + getPaddingLeft() + getPaddingRight() + mProgressWidth;
-        int h = mStaticLayout.getHeight() + getPaddingTop() + getPaddingBottom() + mProgressWidth;
+        int w = mStaticLayout.getWidth() + getPaddingLeft() + getPaddingRight() + DEFAULT_PADDING;
+        int h = mStaticLayout.getHeight() + getPaddingTop() + getPaddingBottom() + DEFAULT_PADDING;
         mRadios = (int) ((Math.sqrt(Math.pow(w, 2) + Math.pow(h, 2)) + 0.5f) / 2);
         int width;
         if (widthMode != MeasureSpec.EXACTLY) {
@@ -220,9 +221,30 @@ public class CountDownView extends View {
         mCountDownTimer.start();
     }
 
+    /**
+     * 判断是否是顺时针进度条。
+     *
+     * @return 如果是返回true，否则返回false。
+     */
+    private boolean hasClockwiseProgress() {
+        return (mProgressMode & 2) != 0;
+    }
+
+    /**
+     * 判断是否是从有到无绘制。
+     *
+     * @return 如果是返回true，否则返回false。
+     */
+    private boolean hasFromExistProgress() {
+        return (mProgressMode & 1) != 0;
+    }
+
     @Override
     public boolean performClick() {
-        mCountDownTimer.onFinish();
+        if (mCountDownTimer != null) {
+            mCountDownTimer.cancel();
+            mCountDownTimer.onFinish();
+        }
         return super.performClick();
     }
 
@@ -231,6 +253,9 @@ public class CountDownView extends View {
     }
 
     public interface OnFinishListener {
+        /**
+         * 倒计时完成或空间被点击后执行。
+         */
         void onFinish();
     }
 
@@ -252,19 +277,24 @@ public class CountDownView extends View {
 
         @Override
         public void onTick(long millisUntilFinished) {
-            mProgress = progressMode == CLOCKWISE_FROM_NOTHING ?
-                    360 - millisUntilFinished / mCountDownInterval
-                    : ~(millisUntilFinished / mCountDownInterval);
+            mProgress = hasFromExistProgress() ?
+                    hasClockwiseProgress() ?
+                            ~(millisUntilFinished / mCountDownInterval) :
+                            millisUntilFinished / mCountDownInterval :
+                    hasClockwiseProgress() ?
+                            360 - millisUntilFinished / mCountDownInterval :
+                            ~(360 - millisUntilFinished / mCountDownInterval);
             invalidate();
         }
 
         @Override
         public void onFinish() {
-            mProgress = progressMode == CLOCKWISE_FROM_NOTHING ? 360 : 0;
+            mProgress = hasFromExistProgress() ? 0 : 360;
             invalidate();
             if (mOnFinishListener != null) {
                 mOnFinishListener.onFinish();
             }
+            mCountDownTimer = null;
         }
     }
 }
