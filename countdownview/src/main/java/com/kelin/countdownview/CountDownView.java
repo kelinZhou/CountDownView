@@ -44,19 +44,19 @@ public class CountDownView extends View {
     /**
      * 表示进度条模式为顺时针从无到有。
      */
-    private static final int CLOCKWISE_FROM_NOTHING = 0b0000_0010;
+    public static final int CLOCKWISE_FROM_NOTHING = 0b0000_0010;
     /**
      * 表示进度条模式为顺时针从有到无。
      */
-    private static final int CLOCKWISE_FROM_EXIST = 0b0000_0011;
+    public static final int CLOCKWISE_FROM_EXIST = 0b0000_0011;
     /**
      * 表示进度条模式为逆时针从无到有。
      */
-    private static final int ANTICLOCKWISE_FROM_NOTHING = 0b0000_0000;
+    public static final int ANTICLOCKWISE_FROM_NOTHING = 0b0000_0000;
     /**
      * 表示进度条模式为逆时针从有到无。
      */
-    private static final int ANTICLOCKWISE_FROM_EXIST = 0b0000_0001;
+    public static final int ANTICLOCKWISE_FROM_EXIST = 0b0000_0001;
     /**
      * 背景颜色。
      */
@@ -81,10 +81,6 @@ public class CountDownView extends View {
      * 要显示的文字。
      */
     private CharSequence mContentText;
-    /**
-     * 字体大小。
-     */
-    private float mTextSize;
     /**
      * 字体颜色。
      */
@@ -120,7 +116,7 @@ public class CountDownView extends View {
     /**
      * 倒计时工具。
      */
-    private CD mCountDownTimer;
+    private CD mCD;
     /**
      * 用来记录当前的进度条模式。
      */
@@ -138,14 +134,14 @@ public class CountDownView extends View {
         super(context, attrs);
         setClickable(true);
         final float fontScale = getContext().getResources().getDisplayMetrics().scaledDensity;
-        mTextSize = (int) (0x0000_000E * fontScale + 0.5);
+        float textSize = (int) (0x0000_000E * fontScale + 0.5);
         //获取自定义属性。
         TypedArray ta;
         if (attrs != null && (ta = context.obtainStyledAttributes(attrs, R.styleable.CountDownView)) != null) {
             mBackgroundColor = ta.getColor(R.styleable.CountDownView_backgroundColor, 0xFF666666);
             mProgressBarWidth = (int) (ta.getDimension(R.styleable.CountDownView_progressBarWidth, 0x0000_000F) + 0.9);
             mProgressBarColor = ta.getColor(R.styleable.CountDownView_progressBarColor, 0xFF66BEE0);
-            mTextSize = ta.getDimension(R.styleable.CountDownView_android_textSize, mTextSize);
+            textSize = ta.getDimension(R.styleable.CountDownView_android_textSize, textSize);
             mTextColor = ta.getColor(R.styleable.CountDownView_android_textColor, 0xFFFFFFFF);
             mLineTextLength = ta.getInteger(R.styleable.CountDownView_lineTextLength, 2);
             mProgress = 360 * ta.getFloat(R.styleable.CountDownView_progress, 0);
@@ -173,7 +169,7 @@ public class CountDownView extends View {
         mProgressBarPaint = createPaint(mProgressBarColor, 0, mProgressBarWidth, Paint.Style.STROKE, null);
 
         //创建用来画文字的画笔以及给文字排版的工具。
-        mTextPaint = new TextPaint(createPaint(mTextColor, mTextSize, 0, null, Paint.Align.CENTER));
+        mTextPaint = new TextPaint(createPaint(mTextColor, textSize, 0, null, Paint.Align.CENTER));
         setText(mContentText);
     }
 
@@ -423,15 +419,15 @@ public class CountDownView extends View {
     }
 
     public void start() {
-        if (mCountDownTimer != null) {
+        if (mCD != null) {
             throw new IllegalStateException("The countdown has begun!");
         }
-        mCountDownTimer = new CD(duration, duration / 360);
-        mCountDownTimer.startCountDown();
+        mCD = new CD(duration, duration / 360);
+        mCD.startCountDown();
     }
 
     public boolean isStarted() {
-        return mCountDownTimer != null && mCountDownTimer.isStarted();
+        return mCD != null && mCD.isStarted();
     }
 
     /**
@@ -454,9 +450,9 @@ public class CountDownView extends View {
 
     @Override
     public boolean performClick() {
-        if (mCountDownTimer != null) {
-            mCountDownTimer.cancel();
-            mCountDownTimer.onFinish();
+        if (mCD != null) {
+            mCD.cancelCountDown();
+            mCD.onFinish();
         }
         return super.performClick();
     }
@@ -507,18 +503,18 @@ public class CountDownView extends View {
             if (mOnFinishListener != null) {
                 mOnFinishListener.onFinish();
             }
-            mCountDownTimer = null;
-        }
-
-        CountDownTimer startCountDown() {
-            isStarted = true;
-            return start();
-        }
-
-        CountDownTimer cancelCountDown() {
+            mCD = null;
             isStarted = false;
+        }
+
+        void startCountDown() {
+            start();
+            isStarted = true;
+        }
+
+        void cancelCountDown() {
             cancel();
-            return this;
+            isStarted = false;
         }
 
         boolean isStarted() {
