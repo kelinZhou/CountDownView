@@ -4,15 +4,26 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.os.Build;
 import android.os.CountDownTimer;
+import android.support.annotation.ColorInt;
+import android.support.annotation.ColorRes;
+import android.support.annotation.IntDef;
 import android.support.annotation.IntRange;
+import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
+import android.support.v4.content.ContextCompat;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.view.View;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * <strong>描述: </strong> 倒计时控件。
@@ -23,28 +34,33 @@ import android.view.View;
 
 public class CountDownView extends View {
 
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({CLOCKWISE_FROM_EXIST, CLOCKWISE_FROM_NOTHING, ANTICLOCKWISE_FROM_EXIST, ANTICLOCKWISE_FROM_NOTHING})
+    private @interface ProgressMode {
+    }
+
     private static final String DEFAULT_TEXT = "跳过";
     private final int DEFAULT_PADDING;
     /**
-     * 表示进度模式为顺时针从无到有。
+     * 表示进度条模式为顺时针从无到有。
      */
     private static final int CLOCKWISE_FROM_NOTHING = 0b0000_0010;
     /**
-     * 表示进度模式为顺时针从有到无。
+     * 表示进度条模式为顺时针从有到无。
      */
     private static final int CLOCKWISE_FROM_EXIST = 0b0000_0011;
     /**
-     * 表示进度模式为逆时针从无到有。
+     * 表示进度条模式为逆时针从无到有。
      */
     private static final int ANTICLOCKWISE_FROM_NOTHING = 0b0000_0000;
     /**
-     * 表示进度模式为逆时针从有到无。
+     * 表示进度条模式为逆时针从有到无。
      */
     private static final int ANTICLOCKWISE_FROM_EXIST = 0b0000_0001;
     /**
      * 背景颜色。
      */
-    private int mBackgroundColor = 0xFF666666;
+    private int mBackgroundColor;
     /**
      * 倒计时的监听。
      */
@@ -56,15 +72,15 @@ public class CountDownView extends View {
     /**
      * 边框的宽度。
      */
-    private int mProgressWidth = 0x0000_000F;
+    private int mProgressBarWidth;
     /**
      * 边框的颜色。
      */
-    private int mProgressColor = 0xFF66BEE0;
+    private int mProgressBarColor;
     /**
      * 要显示的文字。
      */
-    private String mContentText = DEFAULT_TEXT;
+    private CharSequence mContentText;
     /**
      * 字体大小。
      */
@@ -72,7 +88,7 @@ public class CountDownView extends View {
     /**
      * 字体颜色。
      */
-    private int mTextColor = 0xFFFFFFFF;
+    private int mTextColor;
     /**
      * 每行文字的长度，用作换号的依据。
      */
@@ -80,15 +96,19 @@ public class CountDownView extends View {
     /**
      * 显示时长。
      */
-    private int duration = 3000;
+    private int duration;
     /**
      * 用来画圆的画笔。
      */
-    private Paint mCirclePaint;
+    private final Paint mCirclePaint;
     /**
      * 用来画进度条的画笔。
      */
-    private Paint mProgressPaint;
+    private final Paint mProgressBarPaint;
+    /**
+     * 用来绘制字体的画笔。
+     */
+    private final TextPaint mTextPaint;
     /**
      * 绘制进度条时需要用到的矩形，为了避免在onDraw的时候重复new，所以在这里直接创建了。
      */
@@ -100,11 +120,11 @@ public class CountDownView extends View {
     /**
      * 倒计时工具。
      */
-    private CountDownTimer mCountDownTimer;
+    private CD mCountDownTimer;
     /**
      * 用来记录当前的进度条模式。
      */
-    private int mProgressMode = CLOCKWISE_FROM_EXIST;
+    private int mProgressBarMode;
     /**
      * 当前圆的半径。
      */
@@ -119,52 +139,234 @@ public class CountDownView extends View {
         setClickable(true);
         final float fontScale = getContext().getResources().getDisplayMetrics().scaledDensity;
         mTextSize = (int) (0x0000_000E * fontScale + 0.5);
-        if (attrs != null) {
-            TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.CountDownView);
-            mBackgroundColor = ta.getColor(R.styleable.CountDownView_backgroundColor, mBackgroundColor);
-            mProgressWidth = (int) (ta.getDimension(R.styleable.CountDownView_progressWidth, mProgressWidth) + 0.9);
-            mProgressColor = ta.getColor(R.styleable.CountDownView_progressColor, mProgressColor);
+        //获取自定义属性。
+        TypedArray ta;
+        if (attrs != null && (ta = context.obtainStyledAttributes(attrs, R.styleable.CountDownView)) != null) {
+            mBackgroundColor = ta.getColor(R.styleable.CountDownView_backgroundColor, 0xFF666666);
+            mProgressBarWidth = (int) (ta.getDimension(R.styleable.CountDownView_progressBarWidth, 0x0000_000F) + 0.9);
+            mProgressBarColor = ta.getColor(R.styleable.CountDownView_progressBarColor, 0xFF66BEE0);
             mTextSize = ta.getDimension(R.styleable.CountDownView_android_textSize, mTextSize);
-            mTextColor = ta.getColor(R.styleable.CountDownView_android_textColor, mTextColor);
-            mLineTextLength = ta.getInteger(R.styleable.CountDownView_lineTextLength, mLineTextLength);
+            mTextColor = ta.getColor(R.styleable.CountDownView_android_textColor, 0xFFFFFFFF);
+            mLineTextLength = ta.getInteger(R.styleable.CountDownView_lineTextLength, 2);
             mProgress = 360 * ta.getFloat(R.styleable.CountDownView_progress, 0);
-            mProgressMode = ta.getInt(R.styleable.CountDownView_progressMode, mProgressMode);
+            mProgressBarMode = ta.getInt(R.styleable.CountDownView_progressBarMode, CLOCKWISE_FROM_EXIST);
             if ((mContentText = ta.getString(R.styleable.CountDownView_android_text)) == null) {
                 mContentText = DEFAULT_TEXT;
             }
-            setDuration(ta.getInteger(R.styleable.CountDownView_duration, duration));
+            setDuration(ta.getInteger(R.styleable.CountDownView_duration, 3000));
             ta.recycle();
+        } else {
+            mBackgroundColor = 0xFF666666;
+            mProgressBarWidth = 0x0000_000F;
+            mProgressBarColor = 0xFF66BEE0;
+            mTextColor = 0xFFFFFFFF;
+            mLineTextLength = 2;
+            mProgressBarMode = CLOCKWISE_FROM_EXIST;
+            mContentText = DEFAULT_TEXT;
+            setDuration(3000);
         }
         DEFAULT_PADDING = (int) (3 * context.getResources().getDisplayMetrics().density + 0.5f);
-        mCirclePaint = new Paint();
-        mCirclePaint.setAntiAlias(true);
-        mCirclePaint.setDither(true);
-        mCirclePaint.setColor(mBackgroundColor);
-        mCirclePaint.setStyle(Paint.Style.FILL);
+        //创建用来画圆的画笔。
+        mCirclePaint = createPaint(mBackgroundColor, 0, 0, Paint.Style.FILL, null);
 
-        TextPaint mTextPaint = new TextPaint();
-        mTextPaint.setAntiAlias(true);
-        mTextPaint.setDither(true);
-        mTextPaint.setColor(mTextColor);
-        mTextPaint.setTextSize(mTextSize);
-        mTextPaint.setTextAlign(Paint.Align.CENTER);
+        //创建用来画进度条的画笔。
+        mProgressBarPaint = createPaint(mProgressBarColor, 0, mProgressBarWidth, Paint.Style.STROKE, null);
 
-        mProgressPaint = new Paint();
-        mProgressPaint.setAntiAlias(true);
-        mProgressPaint.setDither(true);
-        mProgressPaint.setColor(mProgressColor);
-        mProgressPaint.setStrokeWidth(mProgressWidth);
-        mProgressPaint.setStyle(Paint.Style.STROKE);
+        //创建用来画文字的画笔以及给文字排版的工具。
+        mTextPaint = new TextPaint(createPaint(mTextColor, mTextSize, 0, null, Paint.Align.CENTER));
+        setText(mContentText);
+    }
 
-        mStaticLayout = new StaticLayout(mContentText, mTextPaint, (int) mTextPaint.measureText(mContentText.substring(0, mLineTextLength)), Layout.Alignment.ALIGN_NORMAL, 1F, 0, false);
+    private Paint createPaint(int color, float textSize, float strokeWidth, @Nullable Paint.Style style, @Nullable Paint.Align align) {
+        Paint paint = new Paint();
+        paint.setAntiAlias(true);
+        paint.setDither(true);
+        paint.setColor(color);
+        if (textSize > 0) {
+            paint.setTextSize(textSize);
+        }
+        if (strokeWidth > 0) {
+            paint.setStrokeWidth(strokeWidth);
+        }
+        if (style != null) {
+            paint.setStyle(style);
+        }
+        if (align != null) {
+            paint.setTextAlign(align);
+        }
+        return paint;
     }
 
     /**
-     * 设置时长，单位为毫秒。
+     * 设置进度条模式,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param mProgressMode 要设置的模式。分别为：{@link #CLOCKWISE_FROM_EXIST}、{@link #CLOCKWISE_FROM_NOTHING}、{@link #ANTICLOCKWISE_FROM_EXIST}、{@link #ANTICLOCKWISE_FROM_NOTHING}。
+     */
+    public CountDownView setProgressBarMode(@ProgressMode int mProgressMode) {
+        checkIsStartedAndThrow();
+        this.mProgressBarMode = mProgressMode;
+        return this;
+    }
+
+    /**
+     * 设置进度条宽度,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param widthPx 要设置的宽度，单位为px。
+     */
+    public CountDownView setProgressBarWidth(int widthPx) {
+        checkIsStartedAndThrow();
+        this.mProgressBarWidth = widthPx;
+        return this;
+    }
+
+    /**
+     * 设置进度条颜色,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param color 要设置的颜色。
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    public CountDownView setProgressColor(Color color) {
+        checkIsStartedAndThrow();
+        this.mProgressBarColor = color.toArgb();
+        return this;
+    }
+
+    /**
+     * 设置进度条颜色,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param color 要设置的颜色。
+     */
+    public CountDownView setProgressColor(@ColorInt int color) {
+        checkIsStartedAndThrow();
+        this.mProgressBarColor = color;
+        return this;
+    }
+
+
+    /**
+     * 设置进度条颜色,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param color 要设置的颜色。
+     */
+    public CountDownView setProgressColorResource(@ColorRes int color) {
+        this.mProgressBarColor = ContextCompat.getColor(getContext(), color);
+        return this;
+    }
+
+    /**
+     * 设置圆形背景颜色。
+     *
+     * @param color 要设置的颜色。
+     */
+    @Override
+    public void setBackgroundColor(@ColorInt int color) {
+        this.mBackgroundColor = color;
+        mCirclePaint.setColor(color);
+        invalidate();
+    }
+
+    /**
+     * 设置圆形背景颜色。
+     *
+     * @param color 要设置的颜色。
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    public CountDownView setBackgroundColor(Color color) {
+        this.mBackgroundColor = color.toArgb();
+        mCirclePaint.setColor(this.mBackgroundColor);
+        invalidate();
+        return this;
+    }
+
+    /**
+     * 设置圆形背景颜色。
+     *
+     * @param color 要设置的颜色。
+     */
+    public CountDownView setBackgroundColorResource(@ColorRes int color) {
+        this.mBackgroundColor = ContextCompat.getColor(getContext(), color);
+        mCirclePaint.setColor(this.mBackgroundColor);
+        invalidate();
+        return this;
+    }
+
+    /**
+     * 设置文字,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param text 要设置的文字的内容。
+     */
+    public CountDownView setText(CharSequence text) {
+        checkIsStartedAndThrow();
+        this.mContentText = text;
+        createStaticLayout();
+        return this;
+    }
+
+    private void createStaticLayout() {
+        mStaticLayout = new StaticLayout(mContentText, mTextPaint, (int) mTextPaint.measureText(mContentText.subSequence(0, mLineTextLength).toString()), Layout.Alignment.ALIGN_NORMAL, 1F, 0, false);
+    }
+
+    /**
+     * 设置字体颜色,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param color 要设置的颜色。
+     */
+    public CountDownView setTextColor(@ColorInt int color) {
+        checkIsStartedAndThrow();
+        this.mTextColor = color;
+        mTextPaint.setColor(color);
+        createStaticLayout();
+        return this;
+    }
+
+    /**
+     * 设置字体颜色,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param color 要设置的颜色。
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    public CountDownView setTextColor(Color color) {
+        checkIsStartedAndThrow();
+        this.mTextColor = color.toArgb();
+        mTextPaint.setColor(this.mTextColor);
+        createStaticLayout();
+        return this;
+    }
+
+    /**
+     * 设置字体颜色,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param color 要设置的颜色。
+     */
+    public CountDownView setTextColorResource(@ColorRes int color) {
+        checkIsStartedAndThrow();
+        this.mTextColor = ContextCompat.getColor(getContext(), color);
+        mTextPaint.setColor(this.mTextColor);
+        createStaticLayout();
+        return this;
+    }
+
+    /**
+     * 设置单行文字个数的最大值,必须在{@link #start()}方法被调用前调用。
+     *
+     * @param lineTextLength 要设置的单行文字个数。
+     */
+    public CountDownView setLineTextLength(@IntRange(from = 1) int lineTextLength) {
+        checkIsStartedAndThrow();
+        if (lineTextLength > 0 && lineTextLength < mContentText.length()) {
+            this.mLineTextLength = lineTextLength;
+        }
+        createStaticLayout();
+        return this;
+    }
+
+    /**
+     * 设置时长，单位为毫秒,必须在{@link #start()}方法被调用前调用。
      *
      * @param duration 要设置的时长，取值范围：1000 ~ 20000(1秒至20秒)。
      */
-    public void setDuration(@IntRange(from = 1000, to = 20000) int duration) {
+    public CountDownView setDuration(@IntRange(from = 1000, to = 20000) int duration) {
+        checkIsStartedAndThrow();
         if (duration < 1000) {
             // 这里做小于1秒的判断是因为如果小于1秒假如是200毫秒的话就会导致➗360的时候得不到整数，
             //而且如果小于一秒也没有倒计时的必要了，我是这么认为的。所以加了这个判断。
@@ -173,6 +375,13 @@ public class CountDownView extends View {
             throw new IllegalArgumentException("the duration must be ≥ 1000 and must be ≤ 20000!");
         }
         this.duration = duration;
+        return this;
+    }
+
+    protected void checkIsStartedAndThrow() {
+        if (isStarted()) {
+            throw new IllegalStateException("The countDownView is started，You must call before the start method call.");
+        }
     }
 
     @Override
@@ -184,13 +393,13 @@ public class CountDownView extends View {
         mRadios = (int) ((Math.sqrt(Math.pow(w, 2) + Math.pow(h, 2)) + 0.5f) / 2);
         int width;
         if (widthMode != MeasureSpec.EXACTLY) {
-            width = (mRadios << 1) + mProgressWidth;
+            width = (mRadios << 1) + mProgressBarWidth;
         } else {
             width = MeasureSpec.getSize(widthMeasureSpec);
         }
         int height;
         if (heightMode != MeasureSpec.EXACTLY) {
-            height = (mRadios << 1) + mProgressWidth;
+            height = (mRadios << 1) + mProgressBarWidth;
         } else {
             height = MeasureSpec.getSize(heightMeasureSpec);
         }
@@ -208,7 +417,7 @@ public class CountDownView extends View {
         mRect.top = cy - mRadios;
         mRect.right = cx + mRadios;
         mRect.bottom = cy + mRadios;
-        canvas.drawArc(mRect, -90, mProgress, false, mProgressPaint);
+        canvas.drawArc(mRect, -90, mProgress, false, mProgressBarPaint);
         canvas.translate(cx, cy - (mStaticLayout.getHeight() >>> 1));
         mStaticLayout.draw(canvas);
     }
@@ -218,7 +427,11 @@ public class CountDownView extends View {
             throw new IllegalStateException("The countdown has begun!");
         }
         mCountDownTimer = new CD(duration, duration / 360);
-        mCountDownTimer.start();
+        mCountDownTimer.startCountDown();
+    }
+
+    public boolean isStarted() {
+        return mCountDownTimer != null && mCountDownTimer.isStarted();
     }
 
     /**
@@ -227,7 +440,7 @@ public class CountDownView extends View {
      * @return 如果是返回true，否则返回false。
      */
     private boolean hasClockwiseProgress() {
-        return (mProgressMode & 2) != 0;
+        return (mProgressBarMode & 2) != 0;
     }
 
     /**
@@ -236,7 +449,7 @@ public class CountDownView extends View {
      * @return 如果是返回true，否则返回false。
      */
     private boolean hasFromExistProgress() {
-        return (mProgressMode & 1) != 0;
+        return (mProgressBarMode & 1) != 0;
     }
 
     @Override
@@ -260,7 +473,7 @@ public class CountDownView extends View {
     }
 
     private class CD extends CountDownTimer {
-
+        private boolean isStarted;
         private final long mCountDownInterval;
 
         /**
@@ -295,6 +508,21 @@ public class CountDownView extends View {
                 mOnFinishListener.onFinish();
             }
             mCountDownTimer = null;
+        }
+
+        CountDownTimer startCountDown() {
+            isStarted = true;
+            return start();
+        }
+
+        CountDownTimer cancelCountDown() {
+            isStarted = false;
+            cancel();
+            return this;
+        }
+
+        boolean isStarted() {
+            return isStarted;
         }
     }
 }

@@ -12,15 +12,15 @@
         <!--当前进度-->
         <attr name="progress" format="float" />
         <!--进度条宽度-->
-        <attr name="progressWidth" format="dimension" />
+        <attr name="progressBarWidth" format="dimension" />
         <!--进度条颜色-->
-        <attr name="progressColor" format="color" />
+        <attr name="progressBarColor" format="color" />
         <!--显示时长-->
         <attr name="duration" format="integer" />
         <!--行字体长度，用作分割文本的依据。-->
         <attr name="lineTextLength" format="integer" />
         <!--进度条模式-->
-        <attr name="progressMode">
+        <attr name="progressBarMode">
             <!--顺时针从无到有-->
             <enum name="clockwiseFromNothing" value="0x02" />
             <!--顺时针从有到无-->

@@ -5,10 +5,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
+    <Button
+        android:onClick="onStartCountDown"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:text="开始倒计时"
         android:layout_centerInParent="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -26,10 +27,10 @@
         android:layout_marginEnd="10dp"
         android:layout_marginRight="10dp"
         android:layout_marginTop="10dp"
-        app:progressMode="clockwiseFromExist"
+        app:progressBarMode="clockwiseFromExist"
         app:progress="0.3"
-        app:progressColor="#f0f4"
+        app:progressBarColor="#f0f4"
         android:text="跳广过告"
-        app:progressWidth="2dp"/>
+        app:progressBarWidth="2dp"/>
 
 </RelativeLayout>
