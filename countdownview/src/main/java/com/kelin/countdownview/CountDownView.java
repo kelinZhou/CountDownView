@@ -135,26 +135,30 @@ public class CountDownView extends View {
         setClickable(true);
         final float fontScale = getContext().getResources().getDisplayMetrics().scaledDensity;
         float textSize = (int) (0x0000_000E * fontScale + 0.5);
+        mProgressBarWidth = (int) (2 * context.getResources().getDisplayMetrics().density + 0.5f);
         //获取自定义属性。
         TypedArray ta;
         if (attrs != null && (ta = context.obtainStyledAttributes(attrs, R.styleable.CountDownView)) != null) {
             mBackgroundColor = ta.getColor(R.styleable.CountDownView_backgroundColor, 0xFF666666);
-            mProgressBarWidth = (int) (ta.getDimension(R.styleable.CountDownView_progressBarWidth, 0x0000_000F) + 0.9);
+            mProgressBarWidth = (int) (ta.getDimension(R.styleable.CountDownView_progressBarWidth, mProgressBarWidth) + 0.9);
             mProgressBarColor = ta.getColor(R.styleable.CountDownView_progressBarColor, 0xFF66BEE0);
             textSize = ta.getDimension(R.styleable.CountDownView_android_textSize, textSize);
             mTextColor = ta.getColor(R.styleable.CountDownView_android_textColor, 0xFFFFFFFF);
-            mLineTextLength = ta.getInteger(R.styleable.CountDownView_lineTextLength, 2);
             mProgress = 360 * ta.getFloat(R.styleable.CountDownView_progress, 0);
             mProgressBarMode = ta.getInt(R.styleable.CountDownView_progressBarMode, CLOCKWISE_FROM_EXIST);
             if ((mContentText = ta.getString(R.styleable.CountDownView_android_text)) == null) {
                 mContentText = DEFAULT_TEXT;
             }
+            int length = mContentText.length();
+            if ((length & 1) != 0) {
+                length++;
+            }
+            mLineTextLength = ta.getInteger(R.styleable.CountDownView_lineTextLength, length >> 1);
             setDuration(ta.getInteger(R.styleable.CountDownView_duration, 3000));
             ta.recycle();
         } else {
             mBackgroundColor = 0xFF666666;
-            mProgressBarWidth = 0x0000_000F;
-            mProgressBarColor = 0xFF66BEE0;
+            mProgressBarColor = 0xFFFF0000;
             mTextColor = 0xFFFFFFFF;
             mLineTextLength = 2;
             mProgressBarMode = CLOCKWISE_FROM_EXIST;
@@ -457,8 +461,9 @@ public class CountDownView extends View {
         return super.performClick();
     }
 
-    public void setOnFinishListener(OnFinishListener listener) {
+    public CountDownView setOnFinishListener(OnFinishListener listener) {
         mOnFinishListener = listener;
+        return this;
     }
 
     public interface OnFinishListener {

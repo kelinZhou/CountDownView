@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="CountDownView">
+        <!--显示时长-->
+        <attr name="duration" format="integer" />
         <!--内容文字-->
         <attr name="android:text" />
         <!--字体大小-->
         <attr name="android:textSize" />
         <!--字体颜色-->
         <attr name="android:textColor" />
+        <!--行字体长度，用作分割文本的依据。-->
+        <attr name="lineTextLength" format="integer" />
         <!--背景颜色-->
         <attr name="backgroundColor" format="color" />
         <!--当前进度-->
@@ -15,10 +19,6 @@
         <attr name="progressBarWidth" format="dimension" />
         <!--进度条颜色-->
         <attr name="progressBarColor" format="color" />
-        <!--显示时长-->
-        <attr name="duration" format="integer" />
-        <!--行字体长度，用作分割文本的依据。-->
-        <attr name="lineTextLength" format="integer" />
         <!--进度条模式-->
         <attr name="progressBarMode">
             <!--顺时针从无到有-->
