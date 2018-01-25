@@ -53,6 +53,7 @@ dependencies {
             }
         }).start();
 ```
+代码就是这样了，你只需要监听onFinish就可以了，点击事件不需要监听。如果你非要监听点击事件也不要在onClick(View view)事件中做结束倒计时的操作，因为我已经处理好了，无论你是否监听了点击事件在View被点击后都会执行oFinish()，而且CountDownView本身也没有提供结束倒计时的方法。
 
 
 * * *
