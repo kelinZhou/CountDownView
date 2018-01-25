@@ -32,7 +32,6 @@
         app:lineTextLength="2"
         android:textSize="14sp"
         android:textColor="#FFF"
-        app:progress="0.2"
         app:progressBarWidth="2dp"
         app:progressBarColor="#f0f4"
         app:progressBarMode="clockwiseFromExist"/>
