@@ -6,34 +6,164 @@
     android:layout_height="match_parent">
 
     <Button
-        android:onClick="onStartCountDown"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="开始倒计时"
         android:layout_centerInParent="true"
+        android:onClick="onStartCountDown"
+        android:text="开始倒计时"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
 
-
-    <com.kelin.countdownview.CountDownView
-        android:id="@+id/cd_view"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/llLineOne"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_marginEnd="10dp"
-        android:layout_marginRight="10dp"
+        android:layout_marginStart="10dp"
         android:layout_marginTop="10dp"
-        app:duration="5000"
-        android:text="跳过广告"
-        app:lineTextLength="2"
-        android:textSize="14sp"
-        android:textColor="#FFF"
-        app:progressBarWidth="2dp"
-        app:progressBarColor="#f0f4"
-        app:progressBarMode="clockwiseFromExist"/>
+        android:layout_marginEnd="10dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.kelin.countdownview.CountDownView
+            android:id="@+id/cd_view1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="跳过广告"
+            android:textColor="#FFF"
+            android:textSize="14sp"
+            app:duration="6000"
+            app:lineTextLength="2"
+            app:progressBarColor="#5A8CFF"
+            app:progressBarMode="anticlockwiseFromExist"
+            app:progressBarWidth="4dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.kelin.countdownview.CountDownView
+            android:id="@+id/cd_view2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="跳过"
+            android:textColor="#FFF"
+            android:textSize="14sp"
+            app:duration="6000"
+            app:progressBarColor="#5A8CFF"
+            app:progressBarMode="anticlockwiseFromNothing"
+            app:progressBarWidth="4dp"
+            app:roundStrokeCap="true" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.kelin.countdownview.CountDownView
+            android:id="@+id/cd_view3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="跳过广告"
+            android:textColor="#FFF"
+            android:textSize="14sp"
+            app:duration="6000"
+            app:progressBarColor="#5A8CFF"
+            app:progressBarMode="clockwiseFromExist"
+            app:progressBarWidth="8dp"
+            app:progressMax="0.8"
+            app:roundStrokeCap="true" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/llLineOne"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.kelin.countdownview.CountDownView
+            android:id="@+id/cd_view4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="跳过广告"
+            android:textColor="#FFF"
+            android:textSize="14sp"
+            app:duration="6000"
+            app:progressBarColor="#5A8CFF"
+            app:progressBarMode="anticlockwiseFromNothing"
+            app:progressBarWidth="8dp"
+            app:roundStrokeCap="true" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.kelin.countdownview.CountDownView
+            android:id="@+id/cd_view5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="当前进度"
+            android:textColor="#FFF"
+            android:textSize="14sp"
+            app:duration="2000"
+            app:progressBarColor="#5A8CFF"
+            app:progressBarMode="clockwiseFromNothing"
+            app:progressBarWidth="8dp"
+            app:progressMax="0.8"
+            app:roundStrokeCap="true" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.kelin.countdownview.CountDownView
+            android:id="@+id/cd_view6"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="剩余进度"
+            android:textColor="#FFF"
+            android:textSize="14sp"
+            app:duration="2000"
+            app:progressBarColor="#5A8CFF"
+            app:progressBarMode="anticlockwiseFromExist"
+            app:progressBarWidth="8dp"
+            app:progressMax="0.8"
+            app:roundStrokeCap="true" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+    </LinearLayout>
 
 </RelativeLayout>

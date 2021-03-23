@@ -39,7 +39,7 @@ public class CountDownView extends View {
     private @interface ProgressMode {
     }
 
-    private static final String DEFAULT_TEXT = "跳过";
+    private static final String DEFAULT_TEXT = "";
     private final int DEFAULT_PADDING;
     /**
      * 表示进度条模式为顺时针从无到有。
@@ -70,6 +70,10 @@ public class CountDownView extends View {
      */
     private float mProgress;
     /**
+     * 一个范围为：0~360的小数，做动画时从多少结束。
+     */
+    private long mProgressMax;
+    /**
      * 边框的宽度。
      */
     private int mProgressBarWidth;
@@ -88,7 +92,7 @@ public class CountDownView extends View {
     /**
      * 每行文字的长度，用作换号的依据。
      */
-    private int mLineTextLength = 2;
+    private int mLineTextLength = 4;
     /**
      * 显示时长。
      */
@@ -136,6 +140,7 @@ public class CountDownView extends View {
         final float fontScale = getContext().getResources().getDisplayMetrics().scaledDensity;
         float textSize = (int) (0x0000_000E * fontScale + 0.5);
         mProgressBarWidth = (int) (2 * context.getResources().getDisplayMetrics().density + 0.5f);
+        boolean roundStrokeCap;
         //获取自定义属性。
         TypedArray ta;
         if (attrs != null && (ta = context.obtainStyledAttributes(attrs, R.styleable.CountDownView)) != null) {
@@ -145,22 +150,28 @@ public class CountDownView extends View {
             textSize = ta.getDimension(R.styleable.CountDownView_android_textSize, textSize);
             mTextColor = ta.getColor(R.styleable.CountDownView_android_textColor, 0xFFFFFFFF);
             mProgress = 360 * ta.getFloat(R.styleable.CountDownView_progress, 0);
+            mProgressMax = (long) (360 * ta.getFloat(R.styleable.CountDownView_progressMax, 1));
             mProgressBarMode = ta.getInt(R.styleable.CountDownView_progressBarMode, CLOCKWISE_FROM_EXIST);
             if ((mContentText = ta.getString(R.styleable.CountDownView_android_text)) == null) {
                 mContentText = DEFAULT_TEXT;
             }
             int length = mContentText.length();
-            if ((length & 1) != 0) {
-                length++;
+            if (length > 4) {
+                if ((length & 1) != 0) {
+                    length++;
+                }
+                length = length >> 1;
             }
-            mLineTextLength = ta.getInteger(R.styleable.CountDownView_lineTextLength, length >> 1);
+            roundStrokeCap = ta.getBoolean(R.styleable.CountDownView_roundStrokeCap, false);
+            mLineTextLength = ta.getInteger(R.styleable.CountDownView_lineTextLength, length);
             setDuration(ta.getInteger(R.styleable.CountDownView_duration, 3000));
             ta.recycle();
         } else {
+            roundStrokeCap = false;
             mBackgroundColor = 0xFF666666;
             mProgressBarColor = 0xFFFF0000;
             mTextColor = 0xFFFFFFFF;
-            mLineTextLength = 2;
+            mLineTextLength = 4;
             mProgressBarMode = CLOCKWISE_FROM_EXIST;
             mContentText = DEFAULT_TEXT;
             setDuration(3000);
@@ -171,6 +182,9 @@ public class CountDownView extends View {
 
         //创建用来画进度条的画笔。
         mProgressBarPaint = createPaint(mProgressBarColor, 0, mProgressBarWidth, Paint.Style.STROKE, null);
+        if (roundStrokeCap) {
+            mProgressBarPaint.setStrokeCap(Paint.Cap.ROUND);
+        }
 
         //创建用来画文字的画笔以及给文字排版的工具。
         mTextPaint = new TextPaint(createPaint(mTextColor, textSize, 0, null, Paint.Align.CENTER));
@@ -426,7 +440,8 @@ public class CountDownView extends View {
         if (mCD != null) {
             throw new IllegalStateException("The countdown has begun!");
         }
-        mCD = new CD(duration, duration / 360);
+        int unit = duration / 360;
+        mCD = new CD(mProgressMax * unit, unit);
         mCD.startCountDown();
     }
 
@@ -491,19 +506,18 @@ public class CountDownView extends View {
 
         @Override
         public void onTick(long millisUntilFinished) {
-            mProgress = hasFromExistProgress() ?
-                    hasClockwiseProgress() ?
-                            ~(millisUntilFinished / mCountDownInterval) :
-                            millisUntilFinished / mCountDownInterval :
-                    hasClockwiseProgress() ?
-                            360 - millisUntilFinished / mCountDownInterval :
-                            ~(360 - millisUntilFinished / mCountDownInterval);
+            long scale = millisUntilFinished / mCountDownInterval;
+            if (hasFromExistProgress()) {
+                mProgress = hasClockwiseProgress() ? ~scale : scale;
+            } else {
+                mProgress = hasClockwiseProgress() ? mProgressMax - scale : ~(mProgressMax - scale);
+            }
             invalidate();
         }
 
         @Override
         public void onFinish() {
-            mProgress = hasFromExistProgress() ? 0 : 360;
+            mProgress = hasFromExistProgress() ? 0 : hasClockwiseProgress() ? mProgressMax : ~mProgressMax;
             invalidate();
             if (mOnFinishListener != null) {
                 mOnFinishListener.onFinish();

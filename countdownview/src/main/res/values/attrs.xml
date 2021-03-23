@@ -15,10 +15,14 @@
         <attr name="backgroundColor" format="color" />
         <!--当前进度-->
         <attr name="progress" format="float" />
+        <!--最大进度-->
+        <attr name="progressMax" format="float" />
         <!--进度条宽度-->
         <attr name="progressBarWidth" format="dimension" />
         <!--进度条颜色-->
         <attr name="progressBarColor" format="color" />
+        <!--进度条的线是否有弧度，默认为false。-->
+        <attr name="roundStrokeCap" format="boolean" />
         <!--进度条模式-->
         <attr name="progressBarMode">
             <!--顺时针从无到有-->
